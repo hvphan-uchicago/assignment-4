@@ -29,7 +29,7 @@ myMH <- function(c, nIter, burnIn = 0){
     x1 <- rbeta(1, shape1 = c*chain[ii], shape2 = c*(1-chain[ii]))
     
     # Acceptance ratio
-    r <- dbeta(x1,6,4)/dbeta(chain[ii],6,4)*dbeta(chain[ii], shape1 = c*x1, shape2 = c*(1-x1))/dbeta(x1, shape1 = c*chain[ii], shape2 = c*(1-chain[ii]))
+    r <- (x1/chain[ii])^5*((1-x1)/(1-chain[ii]))^3*dbeta(chain[ii], shape1 = c*x1, shape2 = c*(1-x1))/dbeta(x1, shape1 = c*chain[ii], shape2 = c*(1-chain[ii]))
     
     if (runif(1, min=0, max=1) <= min(r,1)) {chain[ii+1] <- x1} else {chain[ii+1] <- chain[ii]}
   }
@@ -53,7 +53,7 @@ plot(draws1); acf(draws1); hist(draws1, xlim=c(0, 1))  #plot commands
 ```{r}
 #--------- Compare with beta(6,4) ----------#
 draws.true <- rbeta(10000,6,4)
-hist(draws1, xlim=c(0, 1), col = "blue")
+hist(draws1, xlim=c(0, 1), col = "blue", xlab = "x")
 hist(draws.true, col = "red", add = T)
 legend("topleft", c("MH sampling", "True Beta(6,4)"), col=c("blue", "red"), lwd = 4, inset = c(0,0.1))
 
@@ -78,9 +78,11 @@ par(mfrow=c(1,3))  #1 row, 3 columns
 plot(draws4); acf(draws4); hist(draws4, xlim=c(0, 1))  #plot commands
 ```
 
+We now
+
 ```{r}
 ## Compare histograms separately in term of probability density
-hist(draws2, prob = T, col = "blue", xlim=c(0, 1), main = "")
+hist(draws2, prob = T, col = "blue", xlim=c(0, 1), main = "", xlab = expression(phi), ylab = "PDF")
 hist(draws3, prob = T, col = "green", add = T)
 hist(draws4, prob = T, col = "purple", add = T)
 lines(density(draws.true), col = "red", lwd = 4)
@@ -88,3 +90,59 @@ legend("topleft", c("c = 0.1","c = 2.5","c = 10","True Beta(6,4)"), col=c("blue"
 title(main = "Probability density from MH sampling versus true density")
 ```
 
+## Gibbs sampling
+
+```{python}
+##### Import libraries
+import numpy as np
+import matplotlib.pyplot as plt
+
+from math import *
+from random import *
+
+##### Define inverse CDF function for x|y
+def CDF_xy(y, B = 5.0):
+    P = uniform(0,1)
+    x = -1/y*log(1 - P*(1-exp(-y*B)))
+    return(x)
+
+def myGibbs(T, B = 5.0):
+    # Initialize a matrix of 2 columns for x and y
+    chain = np.zeros((T,2))
+    chain[0,0] = uniform(0,B)
+    chain[0,1] = uniform(0,B)
+
+    for ii in range(0,T-1):
+        chain[ii+1,0] = CDF_xy(chain[ii,1], B)
+        chain[ii+1,1] = CDF_xy(chain[ii,0], B)
+
+    return(chain)
+
+##### Sampling
+# Set B = 5
+myB = 5.0
+
+# Sampling 500 points
+mychain = myGibbs(500, myB)
+myx1 = mychain[:,0]
+
+
+plt.hist(myx1, bins = np.linspace(0,myB,20))
+plt.title("Gibbs sampling for 500 data points")
+plt.xlabel("Value")
+plt.ylabel("Frequency")
+plt.ion()
+plt.show()
+
+mychain = myGibbs(5000, myB)
+myx2 = mychain[:,0]
+mychain = myGibbs(50000, myB)
+myx3 = mychain[:,0]
+
+##### Expectation of x
+print "Expectation from 500 samples", np.mean(myx1)
+print "Expectation from 5000 samples", np.mean(myx2)
+print "Expectation from 50000 samples", np.mean(myx3)
+```
+
+The histogram plot is saved externally.

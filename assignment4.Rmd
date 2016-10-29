@@ -1,0 +1,90 @@
+---
+title: "Assignment4"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Metropolis-Hastings
+
+**Section 1**
+
+```{r}
+#---------- Metropolis-Hastings sampling ----------#
+myMH <- function(c, nIter, burnIn = 0){
+  ### c: scaling factor
+  ### nIter: number of iterations
+  ### burnIn: discarded values of the chain
+  
+  x0 <- runif(1, min=0, max=1) # Randomly generate the starting value between 0 and 1
+  
+  chain <- numeric(nIter+1) # Initialize result vector
+  chain[1] <- x0
+  
+  for (ii in 1:nIter){
+    
+    # Draw new candidate from beta function
+    x1 <- rbeta(1, shape1 = c*chain[ii], shape2 = c*(1-chain[ii]))
+    
+    # Acceptance ratio
+    r <- dbeta(x1,6,4)/dbeta(chain[ii],6,4)*dbeta(chain[ii], shape1 = c*x1, shape2 = c*(1-x1))/dbeta(x1, shape1 = c*chain[ii], shape2 = c*(1-chain[ii]))
+    
+    if (runif(1, min=0, max=1) <= min(r,1)) {chain[ii+1] <- x1} else {chain[ii+1] <- chain[ii]}
+  }
+  
+  # Get rid of burn in values
+  if (burnIn > 0) {chain <- chain[-(1:burnIn)]}
+  
+  return(chain)
+}
+
+draws1 <- myMH(1,10000,0) # c = 1, no thinning
+  
+# Plot
+par(mfrow=c(1,3))  #1 row, 3 columns
+plot(draws1); acf(draws1); hist(draws1, xlim=c(0, 1))  #plot commands
+```
+
+
+**Section 2**
+
+```{r}
+#--------- Compare with beta(6,4) ----------#
+draws.true <- rbeta(10000,6,4)
+hist(draws1, xlim=c(0, 1), col = "blue")
+hist(draws.true, col = "red", add = T)
+legend("topleft", c("MH sampling", "True Beta(6,4)"), col=c("blue", "red"), lwd = 4, inset = c(0,0.1))
+
+
+#---------- Kolmogorov-Smirnov test ----------#
+ks.test(draws1,draws.true)
+```
+
+**Section 3**
+
+```{r}
+#---------- Different sampling settings ----------#
+draws2 <- myMH(.1,10000,2000)
+draws3 <- myMH(2.5,10000,2000)
+draws4 <- myMH(10,10000,2000)
+
+par(mfrow=c(1,3))  #1 row, 3 columns
+plot(draws2); acf(draws2); hist(draws2, xlim=c(0, 1))  #plot commands
+par(mfrow=c(1,3))  #1 row, 3 columns
+plot(draws3); acf(draws3); hist(draws3, xlim=c(0, 1))  #plot commands
+par(mfrow=c(1,3))  #1 row, 3 columns
+plot(draws4); acf(draws4); hist(draws4, xlim=c(0, 1))  #plot commands
+```
+
+```{r}
+## Compare histograms separately in term of probability density
+hist(draws2, prob = T, col = "blue", xlim=c(0, 1), main = "")
+hist(draws3, prob = T, col = "green", add = T)
+hist(draws4, prob = T, col = "purple", add = T)
+lines(density(draws.true), col = "red", lwd = 4)
+legend("topleft", c("c = 0.1","c = 2.5","c = 10","True Beta(6,4)"), col=c("blue","green","purple","red"), lwd = 4)
+title(main = "Probability density from MH sampling versus true density")
+```
+

@@ -131,8 +131,7 @@ plt.hist(myx1, bins = np.linspace(0,myB,20))
 plt.title("Gibbs sampling for 500 data points")
 plt.xlabel("Value")
 plt.ylabel("Frequency")
-plt.ion()
-plt.show()
+plt.savefig("gibbs500.png") # save figure externally
 
 mychain = myGibbs(5000, myB)
 myx2 = mychain[:,0]
@@ -140,9 +139,9 @@ mychain = myGibbs(50000, myB)
 myx3 = mychain[:,0]
 
 ##### Expectation of x
-print "Expectation from 500 samples", np.mean(myx1)
-print "Expectation from 5000 samples", np.mean(myx2)
-print "Expectation from 50000 samples", np.mean(myx3)
+print "Expectation from 500 samples is %.6f" % np.mean(myx1)
+print "Expectation from 5000 samples is %.6f" % np.mean(myx2)
+print "Expectation from 50000 samples is %.6f" % np.mean(myx3)
 ```
 
 The histogram plot is saved externally.

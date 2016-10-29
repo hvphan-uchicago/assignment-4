@@ -11,6 +11,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 **Section 1**
 
+Denote $\theta^\ast$ and $\theta^{(t-1)}$ as the proposed candidate and the old value, respectively. Let $J_t(x|y) = \beta(cy,c(c-y))$ be the jumping function, and $P(x)$ be the probability density function we need to sample on. The acceptance ratio is:
+
+$$r = \frac{P(\theta^\ast)}{P(\theta^{(t-1)})} \frac{J_t(\theta^{(t-1)}|\theta^\ast)}{J_t(\theta^\ast|\theta^{(t-1)})}$$
+
+Expanding the first factor using the formula for beta distribution gives:
+
+$$r = \left(\frac{\theta^\ast}{\theta^{(t-1)}}\right)^{6-1} \left(\frac{1-\theta^\ast}{1-\theta^{(t-1)}}\right)^{4-1} \frac{J_t(\theta^{(t-1)}|\theta^\ast)}{J_t(\theta^\ast|\theta^{(t-1)})}$$
+
+To implement the Metropolis-Hastings (MH) algorithm, we first initialize a vector for the draws. The first value of this vector is the starting value, which is generated from a uniform distribution between 0 and 1 (because beta distribution is only applicable for $0 \leq x \leq 1$). Then, we draw a new proposal $\theta^\ast$ candidate from $J_t$, and substitute it and the previous value $\theta^{(t-1)}$ in the vector into the formula for the acceptance ratio $r$. Finally, we accept $\theta^\ast$ with probability $\min(r,1)$, which can be done by an if condition. (Randomly generate a value between 0 and 1, and accept $\theta^\ast$ if this value is less than or equal to $\min(r,1)$; if not, we accept $\theta^{(t-1)}$.)
+
 ```{r}
 #---------- Metropolis-Hastings sampling ----------#
 myMH <- function(c, nIter, burnIn = 0){
@@ -53,9 +63,9 @@ plot(draws1); acf(draws1); hist(draws1, xlim=c(0, 1))  #plot commands
 ```{r}
 #--------- Compare with beta(6,4) ----------#
 draws.true <- rbeta(10000,6,4)
-hist(draws1, xlim=c(0, 1), col = "blue", xlab = "x")
-hist(draws.true, col = "red", add = T)
-legend("topleft", c("MH sampling", "True Beta(6,4)"), col=c("blue", "red"), lwd = 4, inset = c(0,0.1))
+hist(draws1, xlim=c(0, 1), col = rgb(0,0,1,.5), xlab = "x")
+hist(draws.true, col = rgb(1,0,0,.5), add = T)
+legend("topleft", c("MH sampling", "True Beta(6,4)"), col=c(rgb(0,0,1,.5), rgb(1,0,0,.5)), lwd = 4, inset = c(0,0.1))
 
 
 #---------- Kolmogorov-Smirnov test ----------#
@@ -63,6 +73,8 @@ ks.test(draws1,draws.true)
 ```
 
 **Section 3**
+
+We now perform the sampling with different c values (0.1, 2.5, and 10) with 10000 draws and 2000 burn-ins.
 
 ```{r}
 #---------- Different sampling settings ----------#
@@ -78,19 +90,43 @@ par(mfrow=c(1,3))  #1 row, 3 columns
 plot(draws4); acf(draws4); hist(draws4, xlim=c(0, 1))  #plot commands
 ```
 
-We now
+To take into account the difference in the sampling size, we compare the samplers with the built-in beta distribution function in term of probability density instead of the frequency. The densities are shown below.
 
 ```{r}
 ## Compare histograms separately in term of probability density
-hist(draws2, prob = T, col = "blue", xlim=c(0, 1), main = "", xlab = expression(phi), ylab = "PDF")
-hist(draws3, prob = T, col = "green", add = T)
-hist(draws4, prob = T, col = "purple", add = T)
-lines(density(draws.true), col = "red", lwd = 4)
-legend("topleft", c("c = 0.1","c = 2.5","c = 10","True Beta(6,4)"), col=c("blue","green","purple","red"), lwd = 4)
+plot(density(draws1), col = "blue", xlim=c(0, 1), ylim=c(0,3.5), main = "", xlab = expression(phi), ylab = "PDF", lwd = 2)
+lines(density(draws2), col = "green", lwd = 2)
+lines(density(draws3), col = "black", lwd = 2)
+lines(density(draws4), col = "purple", lwd = 2)
+lines(density(draws.true), col = "red", lwd = 4, lty = 2)
+legend("topleft", c("c = 1.0","c = 0.1","c = 2.5","c = 10","True Beta(6,4)"), col=c("blue","green","black","purple","red"), lty = c(1,1,1,1,2), lwd = 3)
 title(main = "Probability density from MH sampling versus true density")
 ```
 
+Judging from the plot, c = 10 seems to give the best results, and the sampling worsen with lower values of c. At c = 0.1, the MH algorithm returns unacceptable results. This proves the importance of the choice of the jumping function.
+
 ## Gibbs sampling
+
+Marginal distribution:
+
+$$p(x|y) = C_0 y e^{-yx}$$
+
+First, we need to normalize $p(x,y)$ for $0<x<B$ to find $C_0$:
+
+$$\int_0^B p(x,y)~dx = 1$$
+$$\left.C_0 y \frac{e^{-yx}}{-y}\right|_{x=0}^{x=B} = 1$$
+$$C_0 = \frac{1}{1-e^{-By}}$$
+
+Next, we calculate the cumulative distribution function $P(x)$:
+
+$$P(x) = \int_0^x p(t,y)~dt = \frac{1}{1-e^{-By}}(1-e^{-xy})$$
+
+The inverse cumulative distribution function is:
+
+$$x = P^{-1}(y) = -\frac{1}{y}\ln{\left[1-u(1-e^{-By})\right]}$$
+where u is drawn from a uniform distribution between 0 and 1. Similarly:
+
+$$y = P^{-1}(x) = -\frac{1}{x}\ln{\left[1-u(1-e^{-Bx})\right]}$$
 
 ```{python}
 ##### Import libraries
@@ -144,4 +180,4 @@ print "Expectation from 5000 samples is %.6f" % np.mean(myx2)
 print "Expectation from 50000 samples is %.6f" % np.mean(myx3)
 ```
 
-The histogram plot is saved externally.
+The histogram plot for 500 samples is saved externally as `gibbs500.png`.

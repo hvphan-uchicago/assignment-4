@@ -28,13 +28,10 @@ myMH <- function(c, nIter, burnIn = 0){
   ### nIter: number of iterations
   ### burnIn: discarded values of the chain
   
-  x0 <- runif(1, min=0, max=1) # Randomly generate the starting value between 0 and 1
-  
   chain <- numeric(nIter+1) # Initialize result vector
-  chain[1] <- x0
+  chain[1] <- runif(1, min=0, max=1) # Randomly generate the starting value between 0 and 1
   
   for (ii in 1:nIter){
-    
     # Draw new candidate from beta function
     x1 <- rbeta(1, shape1 = c*chain[ii], shape2 = c*(1-chain[ii]))
     
@@ -68,19 +65,24 @@ hist(draws.true, col = rgb(1,0,0,.5), add = T)
 legend("topleft", c("MH sampling", "True Beta(6,4)"), col=c(rgb(0,0,1,.5), rgb(1,0,0,.5)), lwd = 4, inset = c(0,0.1))
 
 
-#---------- Kolmogorov-Smirnov test ----------#
+#---------- Kolmogorov-Smirnov test c = 1 ----------#
 ks.test(draws1,draws.true)
 ```
 
+In a 2-sample K-S test, a high p-value (ie, more than 0.05) means the samples are drawn from the same distribution.
+
+At c = 1, the sampler is not reliable: the agreement between the MH sampler and the true beta distribution is consistent. Over many runs, the p-value is usually, but not always, less than 0.05, suggesting that the sampler does not accurately follow the true beta distribution. This might be because the sample size and thinning is not optimal, and we will check this possibility in the next section.
+
 **Section 3**
 
-We now perform the sampling with different c values (0.1, 2.5, and 10) with 10000 draws and 2000 burn-ins.
+We now perform the sampling with different c values (0.1, 1, 2.5, and 10) with 10000 draws and 5000 burn-ins.
 
 ```{r}
 #---------- Different sampling settings ----------#
-draws2 <- myMH(.1,10000,2000)
-draws3 <- myMH(2.5,10000,2000)
-draws4 <- myMH(10,10000,2000)
+draws1 <- myMH(1,10000,5000)
+draws2 <- myMH(.1,10000,5000)
+draws3 <- myMH(2.5,10000,5000)
+draws4 <- myMH(10,10000,5000)
 
 par(mfrow=c(1,3))  #1 row, 3 columns
 plot(draws2); acf(draws2); hist(draws2, xlim=c(0, 1))  #plot commands
@@ -103,7 +105,49 @@ legend("topleft", c("c = 1.0","c = 0.1","c = 2.5","c = 10","True Beta(6,4)"), co
 title(main = "Probability density from MH sampling versus true density")
 ```
 
-Judging from the plot, c = 10 seems to give the best results, and the sampling worsen with lower values of c. At c = 0.1, the MH algorithm returns unacceptable results. This proves the importance of the choice of the jumping function.
+Judging from the plot, c = 10 seems to give the best results, and the sampling worsen with lower values of c. At c = 0.1, the MH algorithm returns unacceptable results. However, the K-S test suggests that c = 2.5 is usually the better sampler, at least with 10000 draws and 5000 burn-ins:  
+
+```{r}
+#---------- Kolmogorov-Smirnov test c = 1 ----------#
+ks.test(draws1,draws.true)
+
+#---------- Kolmogorov-Smirnov test c = 0.1 ----------#
+ks.test(draws2,draws.true)
+
+#---------- Kolmogorov-Smirnov test c = 2.5 ----------#
+ks.test(draws3,draws.true)
+
+#---------- Kolmogorov-Smirnov test c = 10 ----------#
+ks.test(draws4,draws.true)
+```
+
+Note that, because of the random nature of the algorithm, the p-value for c = 2.5 above might be less than 0.05, depending on each individual run.
+
+We have also shown 2 different draws with c = 1, with and without thinning. As we can see, the sampler is still inaccurate, regradless of thinning.
+
+We will now check the sampler with 100000 draws and 5000 burn-ins, which seem to be the optimal parameters. Here is the result for the K-S tests:
+
+```{r}
+#---------- Kolmogorov-Smirnov test c = 1 ----------#
+draws1b <- myMH(1,100000,5000)
+ks.test(draws1b,draws.true)
+
+#---------- Kolmogorov-Smirnov test c = 0.1 ----------#
+draws2b <- myMH(.1,100000,5000)
+ks.test(draws2b,draws.true)
+
+#---------- Kolmogorov-Smirnov test c = 2.5 ----------#
+draws3b <- myMH(2.5,100000,5000)
+ks.test(draws3b,draws.true)
+
+#---------- Kolmogorov-Smirnov test c = 10 ----------#
+draws4b <- myMH(10,100000,5000)
+ks.test(draws4b,draws.true)
+```
+
+The c = 1 sampler has improved in both accuracy and consistency, while the accuracy of c = 0.1 and 10 still depend on each individual run. Interestingly, c = 1 is usually more accurate (ie, higher p-value) than c = 2.5. Nevertheless, while c = 2.5 is the most consistent value for c, it still suffers from the randomness of the algorithm.
+
+The comparison above shows the importance of the choice of the jumping function (eg, c = 0.1 is not suitable), as well as the need for sampling size and thinning (most apparent for c = 1). Over many runs, we have also noticed that there will always be at least one run where the MH algorithm cannot capture the beta distribution.
 
 ## Gibbs sampling
 

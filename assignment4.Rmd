@@ -128,6 +128,11 @@ where u is drawn from a uniform distribution between 0 and 1. Similarly:
 
 $$y = P^{-1}(x) = -\frac{1}{x}\ln{\left[1-u(1-e^{-Bx})\right]}$$
 
+
+The histogram plots for 500, 5000, 50000 samples are saved externally as `gibbs500.png`, 'gibbs5000.png', 'gibbs50000.png'. 
+
+Expectations values were calculated as the mean of each chain, and they were shown at the end of the code.
+
 ```{python}
 ##### Import libraries
 import numpy as np
@@ -158,7 +163,7 @@ def myGibbs(T, B = 5.0):
 # Set B = 5
 myB = 5.0
 
-# Sampling 500 points
+# Sampling 500 points and plotting histogram
 mychain = myGibbs(500, myB)
 myx1 = mychain[:,0]
 
@@ -169,15 +174,29 @@ plt.xlabel("Value")
 plt.ylabel("Frequency")
 plt.savefig("gibbs500.png") # save figure externally
 
+# Sampling 5000 points and plotting histogram
 mychain = myGibbs(5000, myB)
 myx2 = mychain[:,0]
+
+plt.hist(myx2, bins = np.linspace(0,myB,20))
+plt.title("Gibbs sampling for 5000 data points")
+plt.xlabel("Value")
+plt.ylabel("Frequency")
+plt.savefig("gibbs5000.png") # save figure externally
+
+#Sampling 50000 points and plotting histogram
 mychain = myGibbs(50000, myB)
 myx3 = mychain[:,0]
+
+
+plt.hist(myx3, bins = np.linspace(0,myB,20))
+plt.title("Gibbs sampling for 50000 data points")
+plt.xlabel("Value")
+plt.ylabel("Frequency")
+plt.savefig("gibbs50000.png") # save figure externally
 
 ##### Expectation of x
 print "Expectation from 500 samples is %.6f" % np.mean(myx1)
 print "Expectation from 5000 samples is %.6f" % np.mean(myx2)
 print "Expectation from 50000 samples is %.6f" % np.mean(myx3)
 ```
-
-The histogram plot for 500 samples is saved externally as `gibbs500.png`.

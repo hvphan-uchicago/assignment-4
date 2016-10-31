@@ -124,7 +124,7 @@ Note that, because of the random nature of the algorithm, the p-value for c = 2.
 
 We have also shown 2 different draws with c = 1, with and without thinning. As we can see, the sampler is still inaccurate, regradless of thinning.
 
-We will now check the sampler with 100000 draws and 5000 burn-ins, which seem to be the optimal parameters. Here is the result for the K-S tests:
+We will now check the sampler with 100000 draws and 5000 burn-ins, which seem to be the optimal parameters. Here are the results of the K-S tests:
 
 ```{r}
 #---------- Kolmogorov-Smirnov test c = 1 ----------#
@@ -146,7 +146,7 @@ ks.test(draws4b,draws.true)
 
 The c = 1 sampler has improved in both accuracy and consistency, while the accuracy of c = 0.1 and 10 still depend on each individual run. Interestingly, c = 1 is usually more accurate (ie, higher p-value) than c = 2.5. Nevertheless, while c = 2.5 is the most consistent value for c, it still suffers from the randomness of the algorithm.
 
-The comparison above shows the importance of the choice of the jumping function (eg, c = 0.1 is not suitable), as well as the need for sampling size and thinning (most apparent for c = 1). Over many runs, we have also noticed that there will always be at least one run where the MH algorithm cannot capture the beta distribution.
+The comparison above shows the importance of the choice of the jumping function (eg, c = 0.1 is not suitable), as well as the need for sampling size and thinning (most apparent for c = 1). Over many runs, we have also noticed that there will always be at least one run for each tested value of c where the MH algorithm cannot capture the beta distribution.
 
 ## Gibbs sampling
 
@@ -172,7 +172,7 @@ where u is drawn from a uniform distribution between 0 and 1. Similarly:
 $$y = P^{-1}(x) = -\frac{1}{x}\ln{\left[1-u(1-e^{-Bx})\right]}$$
 
 
-The histogram plots for 500, 5000, 50000 samples are saved externally as `gibbs500.png`, 'gibbs5000.png', 'gibbs50000.png'. 
+The histogram plots for 500, 5000, 50000 samples are saved externally as `gibbs500.png`, `gibbs5000.png` and `gibbs50000.png`. 
 
 Expectations values were calculated as the mean of each chain, and they were shown at the end of the code.
 
@@ -266,9 +266,10 @@ cluster_n <- function (x,y) {
   return (number)
 }
 
+##### Install packages first
 #install.packages('rattle')
-data(wine, package="rattle")
 #install.packages('fpc')
+data(wine, package="rattle")
 library('fpc')
 wine=wine[,-1]
 

@@ -54,7 +54,6 @@ par(mfrow=c(1,3))  #1 row, 3 columns
 plot(draws1); acf(draws1); hist(draws1, xlim=c(0, 1))  #plot commands
 ```
 
-
 **Section 2**
 
 ```{r}
@@ -172,6 +171,11 @@ where u is drawn from a uniform distribution between 0 and 1. Similarly:
 
 $$y = P^{-1}(x) = -\frac{1}{x}\ln{\left[1-u(1-e^{-Bx})\right]}$$
 
+
+The histogram plots for 500, 5000, 50000 samples are saved externally as `gibbs500.png`, 'gibbs5000.png', 'gibbs50000.png'. 
+
+Expectations values were calculated as the mean of each chain, and they were shown at the end of the code.
+
 ```{python}
 ##### Import libraries
 import numpy as np
@@ -202,7 +206,7 @@ def myGibbs(T, B = 5.0):
 # Set B = 5
 myB = 5.0
 
-# Sampling 500 points
+# Sampling 500 points and plotting histogram
 mychain = myGibbs(500, myB)
 myx1 = mychain[:,0]
 
@@ -213,10 +217,26 @@ plt.xlabel("Value")
 plt.ylabel("Frequency")
 plt.savefig("gibbs500.png") # save figure externally
 
+# Sampling 5000 points and plotting histogram
 mychain = myGibbs(5000, myB)
 myx2 = mychain[:,0]
+
+plt.hist(myx2, bins = np.linspace(0,myB,20))
+plt.title("Gibbs sampling for 5000 data points")
+plt.xlabel("Value")
+plt.ylabel("Frequency")
+plt.savefig("gibbs5000.png") # save figure externally
+
+#Sampling 50000 points and plotting histogram
 mychain = myGibbs(50000, myB)
 myx3 = mychain[:,0]
+
+
+plt.hist(myx3, bins = np.linspace(0,myB,20))
+plt.title("Gibbs sampling for 50000 data points")
+plt.xlabel("Value")
+plt.ylabel("Frequency")
+plt.savefig("gibbs50000.png") # save figure externally
 
 ##### Expectation of x
 print "Expectation from 500 samples is %.6f" % np.mean(myx1)
@@ -224,4 +244,299 @@ print "Expectation from 5000 samples is %.6f" % np.mean(myx2)
 print "Expectation from 50000 samples is %.6f" % np.mean(myx3)
 ```
 
-The histogram plot for 500 samples is saved externally as `gibbs500.png`.
+## K-Means
+
+The k-mean classifier was written using Euclidean distance, and the codes are shown below:
+
+```{r}
+#Define the distance function
+distance <- function (k,m){
+  d = sqrt(sum((k[1,]-m[1,])^2))
+  return(d)
+}
+
+#Define a function that determines the cluster of each data point
+cluster_n <- function (x,y) {
+  n = nrow(y)
+  dis = c()
+  for (i in 1:n){
+    dis[i] = distance(x,y[i,])
+  }
+  number = match(min(dis),dis)
+  return (number)
+}
+
+#install.packages('rattle')
+data(wine, package="rattle")
+#install.packages('fpc')
+library('fpc')
+wine=wine[,-1]
+
+#Assign the three centroids and initialize the convergence and iteration values
+cent <- wine[c(1,89,178),]
+convergence1 = FALSE
+convergence2 = FALSE
+
+#Iterate the K-mean Algorithm until the clusters converge or 200 ietrations
+counter = 0
+while (!convergence1 & !convergence2) {
+  counter = counter + 1
+  #reset cluster index of each data point
+  index = c()
+  
+  #assign each data point an index that matches the closest centre
+  n_wine=nrow(wine)
+  for(j in 1:n_wine){
+    index[j] = cluster_n(wine[j,],cent) 
+  }
+  
+  #Extract the data in each cluster and group them
+  wine[,"index"] <- index
+  cluster_1 = subset (wine, index==1)
+  cluster_2 = subset (wine, index==2)
+  cluster_3 = subset (wine, index==3)
+  
+  #recalculate the centroids
+  center1_old <- cent[1,]
+  center2_old <- cent[2,]
+  center1=colMeans(cluster_1)
+  center2=colMeans(cluster_2)
+  center3=colMeans(cluster_3)
+  
+  #Determine convergence by checking if the centroids still change
+  convergence1 <- all(center1_old == center1)
+  convergence2 <- all(center1_old == center1)
+  
+  
+  cent<-rbind(center1,center2,center3)
+  cent<-data.frame(cent)
+  #print(counter)
+  if (counter > 200) break
+}
+
+#Visualize the clusters
+plotcluster(wine,index,main="K-Mean Clustering of Wine Data(K=3)")
+```
+
+As can be seen from the plot, the clusters are well separated.
+
+To quantify the degree of correspondance of the classified clusters to the types of wine, we can calculate the number of wines we have successfully designated the 'right' index.
+
+This can be done throught the following code:
+```{r}
+#Extract information of the type of the wine
+data(wine, package="rattle")
+type <- wine[,1]
+
+#Exchange the indices so that they match the type labelling number
+index[index==2]<-4
+index[index==3]<-2
+index[index==4]<-3
+
+#Accuracy is then calculated as ratio of the number of 'correct' indices and that of the total indices
+accuracy <- length(index[index==type])/length(index)
+print(paste("The accuracy of the algorithm in matching type is",accuracy))
+```
+
+The 'scale' function first subtract each column of data by its mean and then divide each column by its standarded deviation. Effectively, this normalizes the elements of each column so as to remove the dominance by columns with large values. The results are as shown below:
+
+```{r}
+data(wine, package="rattle")
+library('fpc')
+wine <- wine[,-1]
+wine <- scale(wine)
+wine <- data.frame(wine)
+
+#Assign the three centroids and initialize the convergence and iteration values
+cent <- wine[c(1,89,178),]
+convergence1 = FALSE
+convergence2 = FALSE
+
+#Iterate the K-mean Algorithm until the clusters converge or 200 ietrations
+counter = 0
+while (!convergence1 & !convergence2) {
+  counter = counter + 1
+  #reset cluster index of each data point
+  index = c()
+  
+  #assign each data point an index that matches the closest centre
+  n_wine=nrow(wine)
+  for(j in 1:n_wine){
+    index[j] = cluster_n(wine[j,],cent) 
+  }
+  
+  #Extract the data in each cluster and group them
+  wine[,"index"] <- index
+  cluster_1 = subset (wine, index==1)
+  cluster_2 = subset (wine, index==2)
+  cluster_3 = subset (wine, index==3)
+  
+  #recalculate the centroids
+  center1_old <- cent[1,]
+  center2_old <- cent[2,]
+  center1=colMeans(cluster_1)
+  center2=colMeans(cluster_2)
+  center3=colMeans(cluster_3)
+  
+  #Determine convergence by checking if the centroids still change
+  convergence1 <- all(center1_old == center1)
+  convergence2 <- all(center1_old == center1)
+  
+  
+  cent<-rbind(center1,center2,center3)
+  cent<-data.frame(cent)
+  #print(counter)
+  if (counter > 200) break
+}
+
+#Visualize the clusters
+plotcluster(wine,index,main="K-Mean Clustering of scaled Wine Data(K=3)")
+```
+
+The accuracy with the scaled data is:
+```{r}
+#Extract information of the type of the wine
+data(wine, package="rattle")
+type <- wine[,1]
+
+#Accuracy is then calculated as ratio of the number of 'correct' indices and that of the total indices
+accuracy <- length(index[index==type])/length(index)
+print(paste("The accuracy of the algorithm in matching type is",accuracy))
+```
+
+From this result, it is clear that the scaled data performs much better with greater accuracy.
+
+The same method is applied on the 'iris' data, which describe measurements from several flowers from three different species.
+
+For the unscaled data, the results are as follows:
+```{r,echo=FALSE}
+data(iris)
+iris=iris[,-5]
+
+#Assign the three centroids and initialize the convergence and iteration values
+cent <- iris[c(1,89,150),]
+convergence1 = FALSE
+convergence2 = FALSE
+
+#Iterate the K-mean Algorithm until the clusters converge or 200 ietrations
+counter = 0
+while (!convergence1 & !convergence2) {
+  counter = counter + 1
+  #reset cluster index of each data point
+  index = c()
+  
+  #assign each data point an index that matches the closest centre
+  n_iris=nrow(iris)
+  for(j in 1:n_iris){
+    index[j] = cluster_n(iris[j,],cent) 
+  }
+  
+  #Extract the data in each cluster and group them
+  iris[,"index"] <- index
+  cluster_1 = subset (iris, index==1)
+  cluster_2 = subset (iris, index==2)
+  cluster_3 = subset (iris, index==3)
+  
+  #recalculate the centroids
+  center1_old <- cent[1,]
+  center2_old <- cent[2,]
+  center1=colMeans(cluster_1)
+  center2=colMeans(cluster_2)
+  center3=colMeans(cluster_3)
+  
+  #Determine convergence by checking if the centroids still change
+  convergence1 <- all(center1_old == center1)
+  convergence2 <- all(center1_old == center1)
+  
+  
+  cent<-rbind(center1,center2,center3)
+  cent<-data.frame(cent)
+  #print(counter)
+  if (counter > 200) break
+}
+
+#Visualize the clusters
+plotcluster(iris,index,main="K-Mean Clustering of three flowers Data(K=3)")
+```
+
+The accuracy can be calculated by modifying the previous code:
+
+```{r}
+#Extract information of the type of the wine
+data(iris)
+type <- iris[,5]
+
+#Convert the names of the flowers to indices
+type <- as.numeric(type)
+
+#Accuracy is then calculated as ratio of the number of 'correct' indices and that of the total indices
+accuracy <- length(index[index==type])/length(index)
+print(paste("The accuracy of the algorithm in matching type is",accuracy))
+```
+
+Similarly, we can perform the above clustering with scaled data of iris. The results are as shown:
+
+```{r,echo=FALSE}
+data(iris)
+iris <- iris[,-5]
+iris <- scale(iris)
+iris <- data.frame(iris)
+
+#Assign the three centroids and initialize the convergence and iteration values
+cent <- iris[c(1,89,150),]
+convergence1 = FALSE
+convergence2 = FALSE
+
+#Iterate the K-mean Algorithm until the clusters converge or 200 ietrations
+counter = 0
+while (!convergence1 & !convergence2) {
+  counter = counter + 1
+  #reset cluster index of each data point
+  index = c()
+  
+  #assign each data point an index that matches the closest centre
+  n_iris=nrow(iris)
+  for(j in 1:n_iris){
+    index[j] = cluster_n(iris[j,],cent) 
+  }
+  
+  #Extract the data in each cluster and group them
+  iris[,"index"] <- index
+  cluster_1 = subset (iris, index==1)
+  cluster_2 = subset (iris, index==2)
+  cluster_3 = subset (iris, index==3)
+  
+  #recalculate the centroids
+  center1_old <- cent[1,]
+  center2_old <- cent[2,]
+  center1=colMeans(cluster_1)
+  center2=colMeans(cluster_2)
+  center3=colMeans(cluster_3)
+  
+  #Determine convergence by checking if the centroids still change
+  convergence1 <- all(center1_old == center1)
+  convergence2 <- all(center1_old == center1)
+  
+  
+  cent<-rbind(center1,center2,center3)
+  cent<-data.frame(cent)
+  #print(counter)
+  if (counter > 200) break
+}
+
+#Visualize the clusters
+plotcluster(iris,index,main="K-Mean Clustering of scaled three flowers Data(K=3)")
+
+#Extract information of the type of the wine
+data(iris)
+type <- iris[,5]
+
+#Convert the names of the flowers to indices
+type <- as.numeric(type)
+
+#Accuracy is then calculated as ratio of the number of 'correct' indices and that of the total indices
+accuracy <- length(index[index==type])/length(index)
+print(paste("The accuracy of the algorithm in matching type is",accuracy))
+```
+
+In this case, k-means algorithm still works decently but the accuracy decreses with scaled data.
